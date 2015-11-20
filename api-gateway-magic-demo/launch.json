@@ -1,0 +1,3 @@
+{
+	"us-east-1": "https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=MagicApi-0-0-1&templateURL=https://s3.amazonaws.com/us-east-1.cfn-demos.templeton.host/magic-api-0-0-1/api.template"
+}

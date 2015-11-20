@@ -1,0 +1,722 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Andrew Templeton | Magic API Generator",
+  "Parameters": {
+    "zzS3Namespace": {
+      "Type": "String",
+      "Description": "Don't change this unless you REALLY know what you're doing!",
+      "Default": "templeton.host"
+    },
+    "zzS3ExtensionsSubspace": {
+      "Type": "String",
+      "Description": "Don't change this unless you REALLY know what you're doing!",
+      "Default": "cfn-ext"
+    },
+    "zzS3DemosSubspace": {
+      "Type": "String",
+      "Description": "Don't change this unless you REALLY know what you're doing!",
+      "Default": "cfn-demos"
+    },
+    "zzDemoVersion": {
+      "Type": "String",
+      "AllowedPattern": "\\d+\\-\\d+\\-\\d+",
+      "Description": "Don't change this unless you REALLY know what you're doing!",
+      "Default": "0-0-1"
+    },
+    "zzDemoName": {
+      "Type": "String",
+      "Description": "Don't change this unless you REALLY know what you're doing!",
+      "Default": "magic-api"
+    },
+    "RestApiName": {
+      "Type": "String",
+      "Description": "Name for the API (required). Must be unique across your account for this Region.",
+      "AllowedPattern": ".+",
+      "Default": "MagicApi"
+    },
+    "RestApiDescription": {
+      "Type": "String",
+      "Description": "Description for the API.",
+      "AllowedPattern": ".+",
+      "Default": "Launched with Magic API Generator"
+    },
+    "MethodHttpMethod": {
+      "Type": "String",
+      "Default": "GET",
+      "Description": "The HTTP method your deployed Method should use.",
+      "AllowedValues": [
+        "DELETE",
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT"
+      ]
+    },
+    "DeploymentStageName": {
+      "Type": "String",
+      "Description": "The name of the API stage you would like to deploy",
+      "AllowedPattern": "^\\w+$",
+      "Default": "magic_dev"
+    },
+    "DeploymentStageDescription": {
+      "Type": "String",
+      "Description": "Description for the API Deployment Stage.",
+      "AllowedPattern": ".+",
+      "Default": "Launched with Magic API Generator"
+    },
+    "DeploymentDescription": {
+      "Type": "String",
+      "Description": "Description for the API Deployment.",
+      "AllowedPattern": ".+",
+      "Default": "Launched with Magic API Generator"
+    },
+    "DeploymentCacheClusterSizeInGigabytes": {
+      "Type": "String",
+      "AllowedValues": [
+        "0.5",
+        "1.6",
+        "6.1",
+        "13.5",
+        "28.4",
+        "58.2",
+        "118",
+        "237"
+      ],
+      "Default": "0.5"
+    }
+  },
+  "Conditions": {
+    "IsStandardRegion": {
+      "Fn::Equals": [
+        {
+          "Ref": "AWS::Region"
+        },
+        "us-east-1"
+      ]
+    }
+  },
+  "Resources": {
+    "zzzServiceExtensions": {
+      "Type" : "AWS::CloudFormation::Stack",
+      "Properties" : {
+        "Parameters" : {
+          "S3Namespace": {
+            "Ref": "zzS3Namespace"
+          },
+          "S3ExtensionsSubspace": {
+            "Ref": "zzS3ExtensionsSubspace"
+          },
+          "ParentStack": {
+            "Ref": "AWS::StackId"
+          }
+        },
+        "TemplateURL" : {
+          "Fn::Join": [
+            "",
+            [
+              "https://s3",
+              {
+                "Fn::If": [
+                  "IsStandardRegion",
+                  "",
+                  {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "-",
+                        {
+                          "Ref": "AWS::Region"
+                        }
+                      ]
+                    ]
+                  }
+                ]
+              },
+              ".amazonaws.com/",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".",
+              {
+                "Ref": "zzS3DemosSubspace"
+              },
+              ".",
+              {
+                "Ref": "zzS3Namespace"
+              },
+              "/",
+              {
+                "Ref": "zzDemoName"
+              },
+              "-",
+              {
+                "Ref": "zzDemoVersion"
+              },
+              "/extensions.template"
+            ]
+          ]
+        },
+        "TimeoutInMinutes" : 5
+      }
+    },
+    "MyRestApi": {
+      "DependsOn": [
+        "zzzServiceExtensions"
+      ],
+      "Type": "Custom::ApiGatewayRestApi",   
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "zzzServiceExtensions",
+            "Outputs.ApiGatewayRestApiCfnExtArn"
+          ]
+        },
+        "Name": {
+          "Ref": "RestApiName"
+        },
+        "Description": {
+          "Ref": "RestApiDescription"
+        }
+      }
+    },
+    "MyMethod": {
+      "DependsOn": [
+        "zzzServiceExtensions",
+        "MyRestApi"
+      ],
+      "Type": "Custom::ApiGatewayMethod",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "zzzServiceExtensions",
+            "Outputs.ApiGatewayMethodCfnExtArn"
+          ]
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": {
+          "Ref": "MethodHttpMethod"
+        },
+        "ResourceId": {
+          "Fn::GetAtt": [
+            "MyRestApi",
+            "RootResourceId"
+          ]
+        },
+        "RestApiId": {
+          "Ref": "MyRestApi"
+        },
+        "RequestModels": {
+          "application/json": "Empty"
+        },
+        "RequestParameters": {
+          "method.request.querystring.MapMe": true
+        }
+      }
+    },
+    "MyMethodResponseOk": {
+      "DependsOn": [
+        "zzzServiceExtensions",
+        "MyRestApi",
+        "MyMethod"
+      ],
+      "Type": "Custom::ApiGatewayMethodResponse",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "zzzServiceExtensions",
+            "Outputs.ApiGatewayMethodResponseCfnExtArn"
+          ]
+        },
+        "StatusCode": "200",
+        "HttpMethod": {
+          "Ref": "MethodHttpMethod"
+        },
+        "ResourceId": {
+          "Fn::GetAtt": [
+            "MyRestApi",
+            "RootResourceId"
+          ]
+        },
+        "RestApiId": {
+          "Ref": "MyRestApi"
+        },
+        "ResponseModels": {
+          "application/json": "Empty"
+        },
+        "ResponseParameters": {
+          "method.response.header.Access-Control-Allow-Origin": true,
+          "method.response.header.Access-Control-Allow-Methods": true
+        }
+      }
+    },
+    "MyIntegration": {
+      "DependsOn": [
+        "zzzServiceExtensions",
+        "MyRestApi",
+        "MyMethod",
+        "MyMethodResponseOk",
+        "IntegrationLambda",
+        "IntegrationCredentialsRole"
+      ],
+      "Type": "Custom::ApiGatewayIntegration",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "zzzServiceExtensions",
+            "Outputs.ApiGatewayIntegrationCfnExtArn"
+          ]
+        },
+        "Type": "AWS",
+        "HttpMethod": {
+          "Ref": "MethodHttpMethod"
+        },
+        "IntegrationHttpMethod": "POST",
+        "ResourceId": {
+          "Fn::GetAtt": [
+            "MyRestApi",
+            "RootResourceId"
+          ]
+        },
+        "RestApiId": {
+          "Ref": "MyRestApi"
+        },
+        "Uri": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:apigateway:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":lambda:path/2015-03-31/functions/",
+              {
+                "Fn::GetAtt": [
+                  "IntegrationLambda",
+                  "Arn"
+                ]
+              },
+              "/invocations"
+            ]
+          ]
+        },
+        "Credentials": {
+          "Fn::GetAtt": [
+            "IntegrationCredentialsRole",
+            "Arn"
+          ]
+        },
+        "RequestTemplates": {
+          "application/json": {
+            "Fn::Join": [
+              "\n",
+              [
+                "{",
+                "  \"hello\": \"world\",",
+                "  \"MapMeFromHeader\": \"$input.params().querystring.get('MapMe')\"",
+                "}"
+              ]
+            ]
+          }
+        },
+        "RequestParameters": {
+          "integration.request.querystring.MapMe": "method.request.querystring.MapMe"
+        }
+      }
+    },
+    "IntegrationLambda": {
+      "DependsOn": [
+        "IntegrationLambdaExecutionRole"
+      ],
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ZipFile": {
+            "Fn::Join": [
+              "\n",
+              [
+                "exports.handler = function(event, context) {",
+                "  console.log('The debugging Lambda was called.');",
+                "  console.log('Event: %j', event);",
+                "  console.log('Context: %j', context);",
+                "  event.addedProperty = 'addedValue';",
+                "  context.succeed(event);",
+                "};"
+              ]
+            ]
+          }
+        },
+        "Description": "Lambda to integrate test asset with.",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "IntegrationLambdaExecutionRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": 300
+      }
+    },
+    "IntegrationCredentialsRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement": [ 
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "apigateway.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "",
+                [
+                  "IntegrationCredentialsRole",
+                  {
+                    "Ref": "AWS::StackName"
+                  }
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "lambda:InvokeFunction",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "IntegrationLambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement": [ 
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "",
+                [
+                  "IntegrationLambdaExecutionRole",
+                  {
+                    "Ref": "AWS::StackName"
+                  }
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "arn:aws:logs:*:*:*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "MyIntegrationResponse": {
+      "DependsOn": [
+        "zzzServiceExtensions",
+        "MyRestApi",
+        "MyMethod",
+        "MyMethodResponseOk",
+        "MyIntegration"
+      ],
+      "Type": "Custom::ApiGatewayIntegrationResponse",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "zzzServiceExtensions",
+            "Outputs.ApiGatewayIntegrationResponseCfnExtArn"
+          ]
+        },
+        "StatusCode": "200",
+        "RestApiId": {
+          "Ref": "MyRestApi"
+        },
+        "HttpMethod": {
+          "Ref": "MethodHttpMethod"
+        },
+        "ResourceId": {
+          "Fn::GetAtt": [
+            "MyRestApi",
+            "RootResourceId"
+          ]
+        },
+        "SelectionPattern": ".*",
+        "ResponseTemplates": {
+          "application/json": {
+            "Fn::Join": [
+              "\n",
+              [
+                "{",
+                "  \"hoistedResponse\": $input.json('$')",
+                "}"
+              ]
+            ]
+          }
+        },
+        "ResponseParameters": {
+          "method.response.header.Access-Control-Allow-Origin": "'*'",
+          "method.response.header.Access-Control-Allow-Methods": {
+            "Fn::Join": [
+              "",
+              [
+                "",
+                "'",
+                {
+                  "Ref": "MethodHttpMethod"
+                },
+                ", OPTIONS",
+                "'"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "MyApiDeployment": {
+      "DependsOn": [
+        "zzzServiceExtensions",
+        "MyRestApi",
+        "MyMethod",
+        "MyMethodResponseOk",
+        "MyIntegration",
+        "MyIntegrationResponse"
+      ],
+      "Type": "Custom::ApiGatewayDeployment",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "zzzServiceExtensions",
+            "Outputs.ApiGatewayDeploymentCfnExtArn"
+          ]
+        },
+        "RestApiId": {
+          "Ref": "MyRestApi"
+        },
+        "StageName": {
+          "Ref": "DeploymentStageName"
+        },
+        "StageDescription": {
+          "Ref": "DeploymentStageDescription"
+        },
+        "Description": {
+          "Ref": "DeploymentDescription"
+        },
+        "CacheClusterEnabled": true,
+        "CacheClusterSize": {
+          "Ref": "DeploymentCacheClusterSizeInGigabytes"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "aSampleTrivialApiCall": {
+      "Description": "Follow the link to see mapping and property addition working!",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "MyRestApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".amazonaws.com/",
+            {
+              "Ref": "DeploymentStageName"
+            },
+            "/?MapMe=ThisWasTheCloudFormationTestOutputLink"
+          ]
+        ]
+      }
+    },
+    "aSampleTrivialApiLogStream": {
+      "Description": "Follow the link to see full API logging working!",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://console.aws.amazon.com/cloudwatch/home?region=",
+            {
+              "Ref": "AWS::Region"
+            },
+            "#logStream:group=/aws/lambda/",
+            {
+              "Ref": "IntegrationLambda"
+            },
+            ";"
+          ]
+        ]
+      }
+    },
+    "aSampleTrivialApiLatencyGraph": {
+      "Description": "Follow the link to see full API latency monitoring working!",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://console.aws.amazon.com/cloudwatch/home?region=",
+            {
+              "Ref": "AWS::Region"
+            },
+            "#metrics:graph=!D03!D15!E07!E19!ET8!MN6!NS2!PD1!SS4!ST0!VA-PT12H~300~ApiGateway~ApiName~Average~Label~Latency~",
+            {
+              "Ref": "RestApiName"
+            },
+            "~P0D~",
+            {
+              "Ref": "DeploymentStageName"
+            }
+          ]
+        ]
+      }
+    },
+    "MyApiDeploymentEndpoint": {
+      "Description": "The root URL of the API we just deployed",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "MyRestApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".amazonaws.com/",
+            {
+              "Ref": "DeploymentStageName"
+            },
+            "/"
+          ]
+        ]
+      }
+    },
+    "MyRestApiId": {
+      "Description": "The unique ID value across your entire account for the created API.",
+      "Value": {
+        "Ref": "MyRestApi"
+      }
+    },
+    "MyRestApiRootResource": {
+      "Description": "The 10 char alphanum ID of the / resource for MyRestApi",
+      "Value": {
+        "Fn::GetAtt": [
+          "MyRestApi",
+          "RootResourceId"
+        ]
+      }
+    },
+    "MyMethodConsoleUrl": {
+      "Description": "The AWS Console URL for inspecting the created method.",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://console.aws.amazon.com/apigateway/home?region=",
+            {
+              "Ref": "AWS::Region"
+            },
+            "#/restapis/",
+            {
+              "Ref": "MyRestApi"
+            },
+            "/resources/",
+            {
+              "Fn::GetAtt": [
+                "MyRestApi",
+                "RootResourceId"
+              ]
+            },
+            "/methods/",
+            {
+              "Ref": "MethodHttpMethod"
+            }
+          ]
+        ]
+      }
+    },
+    "MyApiDeploymentId": {
+      "Description": "The unique ID for the Api Gateway Deployment of MyRestApi",
+      "Value": {
+        "Ref": "MyApiDeployment"
+      }
+    },
+    "zzzServiceExtensionsStackArn": {
+      "Description": "The ARN for the CloudFormation Service Extensions child stack that this stack created",
+      "Value": {
+        "Ref": "zzzServiceExtensions"
+      }
+    },
+    "zzzServiceExtensionsStackConsoleUrl": {
+      "Description": "Console link to the CloudFormation Service Extensions child stack that this stack created",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://console.aws.amazon.com/cloudformation/home?region=",
+            {
+              "Ref": "AWS::Region"
+            },
+            "#/stacks?tab=overview&stackId=",
+            {
+              "Ref": "zzzServiceExtensions"
+            }
+          ]
+        ]
+      }
+    }
+  }
+}

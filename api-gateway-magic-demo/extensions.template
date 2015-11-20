@@ -1,0 +1,475 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Andrew Templeton | Magic API Generation",
+  "Parameters": {
+    "S3Namespace": {
+      "Type": "String",
+      "Description": "Don't change this unless you REALLY know what you're doing!",
+      "Default": "templeton.host"
+    },
+    "S3ExtensionsSubspace": {
+      "Type": "String",
+      "Description": "Don't change this unless you REALLY know what you're doing!",
+      "Default": "cfn-ext"
+    },
+    "ParentStack": {
+      "Type": "String",
+      "Description": "If programmatically generated, the parent CloudFormation stack"
+    }
+  },
+  "Conditions": {
+    "WasProgrammatic": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "ParentStack"
+            },
+            ""
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "ApiGatewayRestApiCfnExt": {
+      "DependsOn": [
+        "ExtensionsLambdaExecutionRole"
+      ],
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              ".",
+              [
+                {
+                  "Ref": "AWS::Region"
+                },
+                {
+                  "Ref": "S3ExtensionsSubspace"
+                },
+                {
+                  "Ref": "S3Namespace"
+                }
+              ]
+            ]
+          },
+          "S3Key": "cfn-api-gateway-restapi-0-4-1.zip"
+        },
+        "Description": "CloudFormation Lambda-Backed Custom Resource handler.",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "ExtensionsLambdaExecutionRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": 300
+      }
+    },
+    "ApiGatewayMethodCfnExt": {
+      "DependsOn": [
+        "ExtensionsLambdaExecutionRole"
+      ],
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              ".",
+              [
+                {
+                  "Ref": "AWS::Region"
+                },
+                {
+                  "Ref": "S3ExtensionsSubspace"
+                },
+                {
+                  "Ref": "S3Namespace"
+                }
+              ]
+            ]
+          },
+          "S3Key": "cfn-api-gateway-method-0-2-2.zip"
+        },
+        "Description": "CloudFormation Lambda-Backed Custom Resource handler.",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "ExtensionsLambdaExecutionRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": 300
+      }
+    },
+    "ApiGatewayMethodResponseCfnExt": {
+      "DependsOn": [
+        "ExtensionsLambdaExecutionRole"
+      ],
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              ".",
+              [
+                {
+                  "Ref": "AWS::Region"
+                },
+                {
+                  "Ref": "S3ExtensionsSubspace"
+                },
+                {
+                  "Ref": "S3Namespace"
+                }
+              ]
+            ]
+          },
+          "S3Key": "cfn-api-gateway-method-response-0-1-1.zip"
+        },
+        "Description": "CloudFormation Lambda-Backed Custom Resource handler.",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "ExtensionsLambdaExecutionRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": 300
+      }
+    },
+    "ApiGatewayIntegrationCfnExt": {
+      "DependsOn": [
+        "ExtensionsLambdaExecutionRoleWithIamPassRole"
+      ],
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              ".",
+              [
+                {
+                  "Ref": "AWS::Region"
+                },
+                {
+                  "Ref": "S3ExtensionsSubspace"
+                },
+                {
+                  "Ref": "S3Namespace"
+                }
+              ]
+            ]
+          },
+          "S3Key": "cfn-api-gateway-integration-0-1-2.zip"
+        },
+        "Description": "CloudFormation Lambda-Backed Custom Resource handler.",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "ExtensionsLambdaExecutionRoleWithIamPassRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": 300
+      }
+    },
+    "ApiGatewayIntegrationResponseCfnExt": {
+      "DependsOn": [
+        "ExtensionsLambdaExecutionRole"
+      ],
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              ".",
+              [
+                {
+                  "Ref": "AWS::Region"
+                },
+                {
+                  "Ref": "S3ExtensionsSubspace"
+                },
+                {
+                  "Ref": "S3Namespace"
+                }
+              ]
+            ]
+          },
+          "S3Key": "cfn-api-gateway-integration-response-0-1-1.zip"
+        },
+        "Description": "CloudFormation Lambda-Backed Custom Resource handler.",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "ExtensionsLambdaExecutionRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": 300
+      }
+    },
+    "ApiGatewayDeploymentCfnExt": {
+      "DependsOn": [
+        "ExtensionsLambdaExecutionRole"
+      ],
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              ".",
+              [
+                {
+                  "Ref": "AWS::Region"
+                },
+                {
+                  "Ref": "S3ExtensionsSubspace"
+                },
+                {
+                  "Ref": "S3Namespace"
+                }
+              ]
+            ]
+          },
+          "S3Key": "cfn-api-gateway-deployment-0-2-1.zip"
+        },
+        "Description": "CloudFormation Lambda-Backed Custom Resource handler.",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "ExtensionsLambdaExecutionRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": 300
+      }
+    },
+    "ExtensionsLambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement": [ 
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "",
+                [
+                  "ExtensionsLambdaExecutionRolePolicy",
+                  {
+                    "Ref": "AWS::StackName"
+                  }
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "apigateway:*"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ExtensionsLambdaExecutionRoleWithIamPassRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement": [ 
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "",
+                [
+                  "ExtensionsLambdaExecutionRolePolicyWithIamPassRole",
+                  {
+                    "Ref": "AWS::StackName"
+                  }
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "apigateway:*"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:PassRole"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "ApiGatewayRestApiCfnExtArn": {
+      "Description": "The ARN of the ApiGatewayRestApi Custom Resource Lambda you deployed with this stack.",
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiGatewayRestApiCfnExt",
+          "Arn"
+        ]
+      }
+    },
+    "ApiGatewayMethodCfnExtArn": {
+      "Description": "The ARN of the ApiGatewayMethod Custom Resource Lambda you deployed with this stack.",
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiGatewayMethodCfnExt",
+          "Arn"
+        ]
+      }
+    },
+    "ApiGatewayMethodResponseCfnExtArn": {
+      "Description": "The ARN of the ApiGatewayMethodResponse Custom Resource Lambda you deployed with this stack.",
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiGatewayMethodResponseCfnExt",
+          "Arn"
+        ]
+      }
+    },
+    "ApiGatewayIntegrationCfnExtArn": {
+      "Description": "The ARN of the ApiGatewayAPIGatewayIntegration Custom Resource Lambda you deployed with this stack.",
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiGatewayIntegrationCfnExt",
+          "Arn"
+        ]
+      }
+    },
+    "ApiGatewayIntegrationResponseCfnExtArn": {
+      "Description": "The ARN of the ApiGatewayIntegrationResponse Custom Resource Lambda you deployed with this stack.",
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiGatewayIntegrationResponseCfnExt",
+          "Arn"
+        ]
+      }
+    },
+    "ApiGatewayDeploymentCfnExtArn": {
+      "Description": "The ARN of the ApiGatewayDeployment Custom Resource Lambda you deployed with this stack.",
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiGatewayDeploymentCfnExt",
+          "Arn"
+        ]
+      }
+    },
+    "ParentStackArn": {
+      "Condition": "WasProgrammatic",
+      "Description": "The ARN for the CloudFormation template that created this stack",
+      "Value": {
+        "Ref": "ParentStack"
+      }
+    },
+    "ParentStackConsoleUrl": {
+      "Condition": "WasProgrammatic",
+      "Description": "Console link to the CloudFormation template that created this stack",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://console.aws.amazon.com/cloudformation/home?region=",
+            {
+              "Ref": "AWS::Region"
+            },
+            "#/stacks?tab=overview&stackId=",
+            {
+              "Ref": "ParentStack"
+            }
+          ]
+        ]
+      }
+    }
+  }
+}
